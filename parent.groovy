@@ -148,13 +148,7 @@ def parse(String description) {
     {
         sendEvent(name: "parseSwitch", value: mapDescription)
 
-        log.debug "We have a 6......Endpoint: ${mapDescription?.endpoint}  SourceEndpoint: ${mapDescription?.sourceEndpoint}"
-      
-        if (((mapDescription?.sourceEndpoint == "01") || ( mapDescription?.endpoint == "01")) || ((mapDescription?.sourceEndpoint == "02") || ( mapDescription?.endpoint == "02"))) {
-           log.debug "==================================================== nulled it."
-           log.debug "Command: ${mapDescription?.command} and Value: ${mapDescription?.value}"
-        }
-        
+       
         // Parse data where we have a sourceEndpoint tag. On refresh we only have an enpoint tag and have a seperate section to parse that data.
  
         if ( mapDescription?.sourceEndpoint != null){
@@ -235,11 +229,7 @@ def parse(String description) {
                 return
             }
         }
-        
-        
-        
-        log.debug "Sending Event for name: ${attrName} with value: ${attrValue}"
-        
+               
         sendEvent(name: attrName, value: attrValue)
         child.sendEvent(name: "switch", value: attrValue)
         
