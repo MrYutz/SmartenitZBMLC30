@@ -109,7 +109,7 @@ def parse(String description) {
     child2 = getChildDevice("${device.deviceNetworkId} Child Switch 2")
     
     def mapDescription = zigbee.parseDescriptionAsMap(description)
-	//log.debug "parse... mapDescription: ${mapDescription}"
+	log.debug "parse... mapDescription: ${mapDescription}"
     
     if (mapDescription.command != "0A"){
         
@@ -148,51 +148,103 @@ def parse(String description) {
     {
         sendEvent(name: "parseSwitch", value: mapDescription)
 
-        //log.debug getChildDevices()
-        
-        if(mapDescription.sourceEndpoint == "01") {
-            attrName = "switch1"
-            if (child1 != null){ 
-			    //Set child deviced handle
-                child = child1
-            }       
+        log.debug "We have a 6......Endpoint: ${mapDescription?.endpoint}  SourceEndpoint: ${mapDescription?.sourceEndpoint}"
+      
+        if (((mapDescription?.sourceEndpoint == "01") || ( mapDescription?.endpoint == "01")) || ((mapDescription?.sourceEndpoint == "02") || ( mapDescription?.endpoint == "02"))) {
+           log.debug "==================================================== nulled it."
+           log.debug "Command: ${mapDescription?.command} and Value: ${mapDescription?.value}"
         }
         
-        else if(mapDescription.sourceEndpoint == "02") {
-            attrName = "switch2"
-            if (child2 != null){ 
-			    //Set child Variable
-                child = child2
+        // Parse data where we have a sourceEndpoint tag. On refresh we only have an enpoint tag and have a seperate section to parse that data.
+ 
+        if ( mapDescription?.sourceEndpoint != null){
+            if((mapDescription?.sourceEndpoint == "01") || ( mapDescription?.endpoint == "01")) {
+                attrName = "switch1"
+                if (child1 != null){ 
+                    //Set child deviced handle
+                    child = child1
+                }       
+            }
+
+            else if((mapDescription?.sourceEndpoint == "02") || ( mapDescription?.endpoint == "02")){
+                attrName = "switch2"
+                if (child2 != null){ 
+                    //Set child Variable
+                    child = child2
+                }
+            }
+
+            else{
+                return
+            }
+
+            if(mapDescription.command == "0B") {
+                if(mapDescription.data[0] == "00") { 
+                    attrValue = "off"
+                }else if(mapDescription.data[0] == "01") {
+                    attrValue = "on"
+                }else{
+                    return
+                }
+
+            }else {
+                if(mapDescription.value == "00") {
+                    attrValue = "off"
+                }else if(mapDescription.value == "01") {
+                    attrValue = "on"
+                }else{
+                    return
+                }
             }
         }
         
-        else{
-            return
-        }
+        if ( mapDescription?.endpoint != null){
+            
+            // Endopint One = Switch 1
+            if(mapDescription?.endpoint == "01") {
+                attrName = "switch1"
+                if (child1 != null){ 
+                    //Set child deviced handle
+                    child = child1
+                }            
+            }
 
-        if(mapDescription.command == "0B") {
-            if(mapDescription.data[0] == "00") { 
-                attrValue = "off"
-            }else if(mapDescription.data[0] == "01") {
-                attrValue = "on"
-            }else{
+            // Endpoint 2 = Switch 2
+            else if(mapDescription?.endpoint == "02"){
+                attrName = "switch2"
+                if (child2 != null){ 
+                    //Set child Variable
+                    child = child2
+
+                }
+            }
+            else{
+                
                 return
             }
             
-        }else {
-            if(mapDescription.value == "00") {
-                attrValue = "off"
-            }else if(mapDescription.value == "01") {
-                attrValue = "on"
-            }else{
+            if (mapDescription?.command == "01" && mapDescription?.value == "00") { 
+               attrValue = "off"
+                     
+            }
+            else if (mapDescription?.command == "01" && mapDescription?.value == "01") {
+               attrValue = "on"
+            }
+            else{
+                
                 return
             }
         }
+        
+        
+        
+        log.debug "Sending Event for name: ${attrName} with value: ${attrValue}"
         
         sendEvent(name: attrName, value: attrValue)
         child.sendEvent(name: "switch", value: attrValue)
         
         def result = createEvent(name: attrName, value: attrValue)
+        
         return result
     }
     
@@ -352,22 +404,26 @@ def switch1_on() {
 	log.info "switch1_on() via turn_on(1)"
 	//zigbee.on()
     turn_on(1)
+
 }
 
 def switch1_off() {
 	log.info "switch1_off() via turn_off(1)"
 	//zigbee.off()
     turn_off(1)
+
 }
 
 def switch2_on(){
 	log.info "switch2_on() via turn_on(2)"
     turn_on(2)
+
 }
 
 def switch2_off(){
 	log.info "switch2_off() via turn_off(2)"
     turn_off(2)
+
 }
 
 def refresh() {
@@ -450,7 +506,7 @@ def turn_off(Integer output = 0) {
         //log.debug zigbee.command(OnOffCluster, OnCommand, additionalParams=[destEndpoint:Endpoint2])
         
         def cmds = []
-        //log.debug cmds << "st cmd 0x${device.deviceNetworkId} ${Endpoint2} ${OnOffCluster} ${OffCommand} {}"
+        cmds << "st cmd 0x${device.deviceNetworkId} ${Endpoint2} ${OnOffCluster} ${OffCommand} {}"
         cmds
 	   
     }
